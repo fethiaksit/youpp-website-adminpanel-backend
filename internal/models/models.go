@@ -9,6 +9,7 @@ import (
 type Organization struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Name      string             `bson:"name" json:"name"`
+	BrandName string             `bson:"brandName" json:"brandName"`
 	Slug      string             `bson:"slug" json:"slug"`
 	PlanID    primitive.ObjectID `bson:"planId" json:"planId"`
 	CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
