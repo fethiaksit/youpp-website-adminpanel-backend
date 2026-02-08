@@ -22,6 +22,13 @@ func main() {
 	}
 
 	ctx := context.Background()
+	if len(os.Args) > 1 && os.Args[1] == "seed" {
+		if err := runSeed(ctx, cfg); err != nil {
+			log.Fatalf("seed error: %v", err)
+		}
+		return
+	}
+
 	mongoConn, err := db.Connect(ctx, cfg.MongoURI, cfg.MongoDB)
 	if err != nil {
 		log.Fatalf("mongo error: %v", err)
