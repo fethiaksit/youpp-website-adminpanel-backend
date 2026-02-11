@@ -21,6 +21,49 @@ REFRESH_TTL_DAYS="30"
 go run ./cmd/api
 ```
 
+## Dotenv minimal working example (Node.js)
+
+If you are testing environment loading in a Node.js script, place both files in the same project root:
+
+`.env`
+
+```bash
+MY_MESSAGE="Hello from .env"
+```
+
+`index.js`
+
+```js
+import dotenv from 'dotenv';
+
+// Load .env from the current working directory
+dotenv.config();
+
+console.log('MY_MESSAGE =', process.env.MY_MESSAGE);
+```
+
+Run:
+
+```bash
+npm i dotenv
+node index.js
+```
+
+Expected output:
+
+```text
+MY_MESSAGE = Hello from .env
+```
+
+Common reasons `.env` does not load:
+
+- `dotenv.config()` is called after code that already reads `process.env`.
+- The process is started from a different working directory, so `.env` is not found.
+- The `.env` filename/path is different (e.g. `.env.local`) but no explicit `path` is provided.
+- ESM/CommonJS mismatch (for CommonJS use `require('dotenv').config()`).
+- The variable name in code does not exactly match the key in `.env`.
+- You expected changes to apply without restarting the Node process.
+
 ## API Overview
 
 ### Auth
