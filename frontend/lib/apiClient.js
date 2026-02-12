@@ -39,4 +39,9 @@ export async function apiFetch(path, options = {}) {
   return res;
 }
 
+export function isAuthenticated() {
+  if (typeof window === 'undefined') return false;
+  return Boolean(localStorage.getItem('accessToken'));
+}
+
 export { API_BASE };
