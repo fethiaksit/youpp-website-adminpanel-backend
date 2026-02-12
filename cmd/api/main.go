@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -46,8 +47,13 @@ func main() {
 
 	routes.RegisterRoutes(router, mongoConn.DB, cfg)
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	srv := &http.Server{
-		Addr:              ":8080",
+		Addr:              fmt.Sprintf(":%s", port),
 		Handler:           router,
 		ReadHeaderTimeout: 5 * time.Second,
 	}

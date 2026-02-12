@@ -1,19 +1,23 @@
-# Youpp Adminpanel Backend
+# Youpp Adminpanel Backend (Single-tenant / Tenantless Runtime Auth)
 
-Professional multi-tenant SaaS admin API backend built with Go, Gin, MongoDB Atlas, and JWT.
+This backend now runs in a tenantless authorization model.
 
 ## Environment
-
-Create a `.env` file or export the following variables:
 
 ```bash
 MONGO_URI="mongodb+srv://<user>:<pass>@cluster.mongodb.net"
 MONGO_DB="youpp_admin"
 JWT_SECRET="super-secret"
 JWT_REFRESH_SECRET="super-refresh-secret"
+PROVISION_API_KEY="change-me"
 ACCESS_TTL_MIN="15"
 REFRESH_TTL_DAYS="30"
-PROVISION_API_KEY="change-me"
+SUPERADMIN_EMAIL="admin@example.com"
+SUPERADMIN_PASSWORD="change-me"
+DEMO_EMAIL="demo@example.com"
+DEMO_PASSWORD="change-me"
+DEMO_SITE_SLUG="demo-site"
+PORT="8080"
 ```
 
 ## Run
@@ -22,136 +26,39 @@ PROVISION_API_KEY="change-me"
 go run ./cmd/api
 ```
 
-## Dotenv minimal working example (Node.js)
-
-If you are testing environment loading in a Node.js script, place both files in the same project root:
-
-`.env`
+## Seed
 
 ```bash
-MY_MESSAGE="Hello from .env"
+go run ./cmd/api seed
 ```
 
-`index.js`
+Seed is idempotent and uses env vars above.
 
-```js
-import dotenv from 'dotenv';
+## Core APIs
 
-// Load .env from the current working directory
-dotenv.config();
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `GET /api/me`
+- `GET /api/sites`
+- `POST /api/sites` (superadmin only)
+- `GET /api/sites/:id`
+- `PUT /api/sites/:id/content`
+- `POST /api/sites/:id/publish`
+- `POST /api/sites/:id/unpublish`
 
-console.log('MY_MESSAGE =', process.env.MY_MESSAGE);
-```
+Admin APIs (superadmin only):
 
-Run:
+- `GET /api/admin/sites`
+- `POST /api/admin/sites`
+- `POST /api/admin/sites/:id/grant`
+- `GET /api/admin/sites/:id/users`
+- `POST /api/admin/users`
+- `GET /api/admin/users`
 
-```bash
-npm i dotenv
-node index.js
-```
+Provisioning:
 
-Expected output:
+- `POST /api/provision/bootstrap` (requires `X-API-Key: PROVISION_API_KEY`)
 
-```text
-MY_MESSAGE = Hello from .env
-```
+Public site:
 
-Common reasons `.env` does not load:
-
-- `dotenv.config()` is called after code that already reads `process.env`.
-- The process is started from a different working directory, so `.env` is not found.
-- The `.env` filename/path is different (e.g. `.env.local`) but no explicit `path` is provided.
-- ESM/CommonJS mismatch (for CommonJS use `require('dotenv').config()`).
-- The variable name in code does not exactly match the key in `.env`.
-- You expected changes to apply without restarting the Node process.
-
-## API Overview
-
-### Auth
-
-```bash
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"password123"}'
-```
-
-```bash
-curl -X POST http://localhost:8080/api/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"refreshToken":"<refresh-token>"}'
-```
-
-```bash
-curl -X GET http://localhost:8080/api/me \
-  -H "Authorization: Bearer <access-token>"
-```
-
-### Sites
-
-```bash
-curl -X GET http://localhost:8080/api/sites \
-  -H "Authorization: Bearer <access-token>"
-```
-
-```bash
-curl -X POST http://localhost:8080/api/sites \
-  -H "Authorization: Bearer <access-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"My Site","slug":"my-site"}'
-```
-
-```bash
-curl -X GET http://localhost:8080/api/sites/<site-id> \
-  -H "Authorization: Bearer <access-token>"
-```
-
-```bash
-curl -X PUT http://localhost:8080/api/sites/<site-id>/content \
-  -H "Authorization: Bearer <access-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"content":{"blocks":[],"meta":{}}}'
-```
-
-```bash
-curl -X POST http://localhost:8080/api/sites/<site-id>/publish \
-  -H "Authorization: Bearer <access-token>"
-```
-
-```bash
-curl -X POST http://localhost:8080/api/sites/<site-id>/unpublish \
-  -H "Authorization: Bearer <access-token>"
-```
-
-### Public
-
-```bash
-curl -X GET http://localhost:8080/s/<slug>
-```
-
-## Notes
-
-- Tokens embed userId, orgId, and role to enforce tenant scoping on every query.
-- All authenticated queries filter by `orgId` to ensure tenant isolation.
-
-
-### Provisioning
-
-```bash
-curl -X POST http://localhost:8080/api/provision/request-code \
-  -H "X-API-Key: <provision-api-key>" \
-  -H "Content-Type: application/json" \
-  -d '{"siteName":"Acme","siteSlug":"acme"}'
-```
-
-```bash
-curl -X POST http://localhost:8080/api/auth/setup-login \
-  -H "Content-Type: application/json" \
-  -d '{"code":"ABCD-EFGH"}'
-```
-
-```bash
-curl -X POST http://localhost:8080/api/auth/setup-register \
-  -H "Authorization: Bearer <setup-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"owner@acme.com","password":"StrongPass!123"}'
-```
+- `GET /s/:slug`

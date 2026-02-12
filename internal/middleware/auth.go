@@ -9,9 +9,8 @@ import (
 )
 
 const (
-	ContextUserID = "userId"
-	ContextOrgID  = "orgId"
-	ContextRole   = "role"
+	ContextUserID     = "userId"
+	ContextGlobalRole = "globalRole"
 )
 
 func AuthRequired(secret string) gin.HandlerFunc {
@@ -29,14 +28,24 @@ func AuthRequired(secret string) gin.HandlerFunc {
 		}
 
 		claims, err := utils.ParseToken(parts[1], secret)
-		if err != nil {
+		if err != nil || claims.Subject == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			return
 		}
 
-		c.Set(ContextUserID, claims.UserID)
-		c.Set(ContextOrgID, claims.OrgID)
-		c.Set(ContextRole, claims.Role)
+		c.Set(ContextUserID, claims.Subject)
+		c.Set(ContextGlobalRole, claims.GlobalRole)
+		c.Next()
+	}
+}
+
+func SuperAdminRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, ok := c.Get(ContextGlobalRole)
+		if !ok || role.(string) != "superadmin" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "superadmin access required"})
+			return
+		}
 		c.Next()
 	}
 }
