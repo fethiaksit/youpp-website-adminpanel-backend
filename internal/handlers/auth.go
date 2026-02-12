@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -37,7 +38,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := h.Users.FindOne(c, bson.M{"email": req.Email}).Decode(&user); err != nil {
+	if err := h.Users.FindOne(c, bson.M{"email": strings.ToLower(req.Email)}).Decode(&user); err != nil {
 		respondError(c, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
@@ -47,22 +48,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := utils.CreateToken(user.ID.Hex(), user.OrganizationID.Hex(), user.Role, h.Cfg.JWTSecret, time.Duration(h.Cfg.AccessTTLMinutes)*time.Minute)
+	accessToken, err := utils.CreateToken(user.ID.Hex(), user.GlobalRole, h.Cfg.JWTSecret, time.Duration(h.Cfg.AccessTTLMinutes)*time.Minute)
 	if err != nil {
 		respondError(c, http.StatusInternalServerError, "failed to create access token")
 		return
 	}
 
-	refreshToken, err := utils.CreateToken(user.ID.Hex(), user.OrganizationID.Hex(), user.Role, h.Cfg.JWTRefreshSecret, time.Duration(h.Cfg.RefreshTTLDays)*24*time.Hour)
+	refreshToken, err := utils.CreateToken(user.ID.Hex(), user.GlobalRole, h.Cfg.JWTRefreshSecret, time.Duration(h.Cfg.RefreshTTLDays)*24*time.Hour)
 	if err != nil {
 		respondError(c, http.StatusInternalServerError, "failed to create refresh token")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"accessToken":  accessToken,
-		"refreshToken": refreshToken,
-	})
+	c.JSON(http.StatusOK, gin.H{"accessToken": accessToken, "refreshToken": refreshToken})
 }
 
 func (h *AuthHandler) Refresh(c *gin.Context) {
@@ -78,60 +76,63 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := utils.CreateToken(claims.UserID, claims.OrgID, claims.Role, h.Cfg.JWTSecret, time.Duration(h.Cfg.AccessTTLMinutes)*time.Minute)
+	accessToken, err := utils.CreateToken(claims.Subject, claims.GlobalRole, h.Cfg.JWTSecret, time.Duration(h.Cfg.AccessTTLMinutes)*time.Minute)
 	if err != nil {
 		respondError(c, http.StatusInternalServerError, "failed to create access token")
 		return
 	}
 
-	refreshToken, err := utils.CreateToken(claims.UserID, claims.OrgID, claims.Role, h.Cfg.JWTRefreshSecret, time.Duration(h.Cfg.RefreshTTLDays)*24*time.Hour)
+	refreshToken, err := utils.CreateToken(claims.Subject, claims.GlobalRole, h.Cfg.JWTRefreshSecret, time.Duration(h.Cfg.RefreshTTLDays)*24*time.Hour)
 	if err != nil {
 		respondError(c, http.StatusInternalServerError, "failed to create refresh token")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"accessToken":  accessToken,
-		"refreshToken": refreshToken,
-	})
+	c.JSON(http.StatusOK, gin.H{"accessToken": accessToken, "refreshToken": refreshToken})
 }
 
 func (h *AuthHandler) Me(c *gin.Context) {
-	orgID, ok := c.Get(middleware.ContextOrgID)
-	if !ok {
-		respondError(c, http.StatusUnauthorized, "missing org context")
-		return
-	}
-
-	userID, ok := c.Get(middleware.ContextUserID)
-	if !ok {
-		respondError(c, http.StatusUnauthorized, "missing user context")
-		return
-	}
-
-	orgObjectID, err := primitive.ObjectIDFromHex(orgID.(string))
+	userID, err := getUserID(c)
 	if err != nil {
-		respondError(c, http.StatusBadRequest, "invalid org id")
+		respondError(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	userObjectID, err := primitive.ObjectIDFromHex(userID.(string))
+	globalRole, err := getGlobalRole(c)
 	if err != nil {
-		respondError(c, http.StatusBadRequest, "invalid user id")
+		respondError(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
 	var user models.User
-	if err := h.Users.FindOne(c, bson.M{"_id": userObjectID, "orgId": orgObjectID}).Decode(&user); err != nil {
+	if err := h.Users.FindOne(c, bson.M{"_id": userID}).Decode(&user); err != nil {
 		respondError(c, http.StatusNotFound, "user not found")
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":    user.ID.Hex(),
-		"name":  user.Name,
-		"email": user.Email,
-		"role":  user.Role,
-		"orgId": user.OrganizationID.Hex(),
+		"id":         user.ID.Hex(),
+		"email":      user.Email,
+		"globalRole": globalRole,
 	})
+}
+
+func getUserID(c *gin.Context) (primitive.ObjectID, error) {
+	userID, ok := c.Get(middleware.ContextUserID)
+	if !ok {
+		return primitive.NilObjectID, errMissingUserContext
+	}
+	objID, err := primitive.ObjectIDFromHex(userID.(string))
+	if err != nil {
+		return primitive.NilObjectID, errInvalidUserContext
+	}
+	return objID, nil
+}
+
+func getGlobalRole(c *gin.Context) (string, error) {
+	role, ok := c.Get(middleware.ContextGlobalRole)
+	if !ok {
+		return "", errMissingRoleContext
+	}
+	return role.(string), nil
 }
