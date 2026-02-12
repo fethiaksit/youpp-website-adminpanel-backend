@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -12,6 +13,7 @@ type Config struct {
 	JWTSecret        string
 	JWTRefreshSecret string
 	ProvisionAPIKey  string
+	FrontendOrigins  []string
 	AccessTTLMinutes int
 	RefreshTTLDays   int
 }
@@ -23,6 +25,7 @@ func Load() (*Config, error) {
 		JWTSecret:        os.Getenv("JWT_SECRET"),
 		JWTRefreshSecret: os.Getenv("JWT_REFRESH_SECRET"),
 		ProvisionAPIKey:  os.Getenv("PROVISION_API_KEY"),
+		FrontendOrigins:  getFrontendOrigins(),
 	}
 
 	if cfg.MongoURI == "" || cfg.MongoDB == "" || cfg.JWTSecret == "" || cfg.JWTRefreshSecret == "" {
@@ -43,6 +46,28 @@ func Load() (*Config, error) {
 	cfg.RefreshTTLDays = refreshTTL
 
 	return cfg, nil
+}
+
+func getFrontendOrigins() []string {
+	frontendOrigins := os.Getenv("FRONTEND_ORIGINS")
+	if frontendOrigins == "" {
+		return nil
+	}
+
+	rawOrigins := strings.Split(frontendOrigins, ",")
+	origins := make([]string, 0, len(rawOrigins))
+	for _, origin := range rawOrigins {
+		trimmed := strings.TrimSpace(origin)
+		if trimmed != "" {
+			origins = append(origins, trimmed)
+		}
+	}
+
+	if len(origins) == 0 {
+		return nil
+	}
+
+	return origins
 }
 
 func getEnvInt(key string, fallback int) (int, error) {
