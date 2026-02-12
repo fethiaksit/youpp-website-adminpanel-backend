@@ -73,6 +73,7 @@ func (h *SiteHandler) Create(c *gin.Context) {
 		OrganizationID: orgObjectID,
 		Name:           req.Name,
 		Slug:           slug,
+		IsProvisioned:  false,
 		Status:         "draft",
 		Content:        map[string]interface{}{},
 		CreatedAt:      time.Now(),

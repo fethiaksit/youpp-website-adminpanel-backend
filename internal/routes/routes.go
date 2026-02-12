@@ -13,6 +13,14 @@ func RegisterRoutes(router *gin.Engine, db *mongo.Database, cfg *config.Config) 
 		Users: db.Collection("users"),
 		Cfg:   cfg,
 	}
+	provisionHandler := &handlers.ProvisionHandler{
+		Cfg:            cfg,
+		ProvisionCodes: db.Collection("provision_codes"),
+		Organizations:  db.Collection("organizations"),
+		Sites:          db.Collection("sites"),
+		Tenants:        db.Collection("tenants"),
+		Users:          db.Collection("users"),
+	}
 	siteHandler := &handlers.SiteHandler{
 		Sites: db.Collection("sites"),
 	}
@@ -26,6 +34,19 @@ func RegisterRoutes(router *gin.Engine, db *mongo.Database, cfg *config.Config) 
 		{
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.Refresh)
+			auth.POST("/setup-login", provisionHandler.SetupLogin)
+
+			setup := auth.Group("")
+			setup.Use(middleware.SetupTokenRequired(cfg.JWTSecret))
+			{
+				setup.POST("/setup-register", provisionHandler.SetupRegister)
+			}
+		}
+
+		provision := api.Group("/provision")
+		provision.Use(middleware.ProvisionAPIKeyRequired(cfg.ProvisionAPIKey))
+		{
+			provision.POST("/request-code", provisionHandler.RequestCode)
 		}
 
 		api.GET("/me", middleware.AuthRequired(cfg.JWTSecret), authHandler.Me)

@@ -13,6 +13,7 @@ JWT_SECRET="super-secret"
 JWT_REFRESH_SECRET="super-refresh-secret"
 ACCESS_TTL_MIN="15"
 REFRESH_TTL_DAYS="30"
+PROVISION_API_KEY="change-me"
 ```
 
 ## Run
@@ -131,3 +132,26 @@ curl -X GET http://localhost:8080/s/<slug>
 
 - Tokens embed userId, orgId, and role to enforce tenant scoping on every query.
 - All authenticated queries filter by `orgId` to ensure tenant isolation.
+
+
+### Provisioning
+
+```bash
+curl -X POST http://localhost:8080/api/provision/request-code \
+  -H "X-API-Key: <provision-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"siteName":"Acme","siteSlug":"acme"}'
+```
+
+```bash
+curl -X POST http://localhost:8080/api/auth/setup-login \
+  -H "Content-Type: application/json" \
+  -d '{"code":"ABCD-EFGH"}'
+```
+
+```bash
+curl -X POST http://localhost:8080/api/auth/setup-register \
+  -H "Authorization: Bearer <setup-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"owner@acme.com","password":"StrongPass!123"}'
+```
