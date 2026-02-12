@@ -1,6 +1,9 @@
 package routes
 
 import (
+	"time"
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/youpp/youpp-website-adminpanel-backend/internal/config"
 	"github.com/youpp/youpp-website-adminpanel-backend/internal/handlers"
@@ -9,6 +12,23 @@ import (
 )
 
 func RegisterRoutes(router *gin.Engine, db *mongo.Database, cfg *config.Config) {
+	frontendOrigins := cfg.FrontendOrigins
+	if len(frontendOrigins) == 0 {
+		frontendOrigins = []string{
+			"http://localhost:3000",
+			"http://127.0.0.1:3000",
+		}
+	}
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     frontendOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
 	authHandler := &handlers.AuthHandler{
 		Users: db.Collection("users"),
 		Cfg:   cfg,
