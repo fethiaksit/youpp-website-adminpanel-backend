@@ -11,6 +11,7 @@ type Config struct {
 	MongoDB          string
 	JWTSecret        string
 	JWTRefreshSecret string
+	ProvisionAPIKey  string
 	AccessTTLMinutes int
 	RefreshTTLDays   int
 }
@@ -21,6 +22,7 @@ func Load() (*Config, error) {
 		MongoDB:          os.Getenv("MONGO_DB"),
 		JWTSecret:        os.Getenv("JWT_SECRET"),
 		JWTRefreshSecret: os.Getenv("JWT_REFRESH_SECRET"),
+		ProvisionAPIKey:  os.Getenv("PROVISION_API_KEY"),
 	}
 
 	if cfg.MongoURI == "" || cfg.MongoDB == "" || cfg.JWTSecret == "" || cfg.JWTRefreshSecret == "" {

@@ -37,6 +37,10 @@ func main() {
 		_ = mongoConn.Client.Disconnect(ctx)
 	}()
 
+	if err := db.EnsureIndexes(ctx, mongoConn.DB); err != nil {
+		log.Fatalf("index error: %v", err)
+	}
+
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 
