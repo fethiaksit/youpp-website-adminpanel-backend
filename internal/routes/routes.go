@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -14,7 +15,14 @@ import (
 func RegisterRoutes(router *gin.Engine, db *mongo.Database, cfg *config.Config) {
 	frontendOrigins := cfg.FrontendOrigins
 	if len(frontendOrigins) == 0 {
-		frontendOrigins = []string{"http://localhost:3000", "http://127.0.0.1:3000"}
+		frontendOrigins = []string{
+			"https://youpp.com.tr",
+			"https://panel.youpp.com.tr",
+			"http://localhost:3000",
+			"http://127.0.0.1:3000",
+			"http://localhost:3001",
+			"http://127.0.0.1:3001",
+		}
 	}
 
 	router.Use(cors.New(cors.Config{
@@ -27,6 +35,7 @@ func RegisterRoutes(router *gin.Engine, db *mongo.Database, cfg *config.Config) 
 	}))
 
 	authHandler := &handlers.AuthHandler{Users: db.Collection("users"), Cfg: cfg}
+	publicAuthHandler := &handlers.PublicAuthHandler{Users: db.Collection("users"), Sites: db.Collection("sites"), SitePermissions: db.Collection("site_permissions"), Cfg: cfg}
 	siteHandler := &handlers.SiteHandler{Sites: db.Collection("sites"), SitePermissions: db.Collection("site_permissions")}
 	adminHandler := &handlers.AdminHandler{Users: db.Collection("users"), Sites: db.Collection("sites"), SitePermissions: db.Collection("site_permissions")}
 	provisionHandler := &handlers.ProvisionHandler{Cfg: cfg, Users: db.Collection("users")}
@@ -34,6 +43,9 @@ func RegisterRoutes(router *gin.Engine, db *mongo.Database, cfg *config.Config) 
 
 	api := router.Group("/api")
 	{
+		public := api.Group("/public")
+		public.POST("/register", publicAuthHandler.Register)
+
 		auth := api.Group("/auth")
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/refresh", authHandler.Refresh)
@@ -62,6 +74,10 @@ func RegisterRoutes(router *gin.Engine, db *mongo.Database, cfg *config.Config) 
 		admin.POST("/users", adminHandler.CreateUser)
 		admin.GET("/users", adminHandler.ListUsers)
 	}
+
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
 
 	router.GET("/s/:slug", publicHandler.GetPublishedSite)
 }

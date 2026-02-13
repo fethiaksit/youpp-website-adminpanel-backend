@@ -1,33 +1,48 @@
 import Head from 'next/head';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { apiFetch, clearTokens, isAuthenticated } from '../../lib/apiClient';
 import styles from '../../styles/Admin.module.css';
 
 export default function AdminHome() {
+  const [me, setMe] = useState(null);
+
+  useEffect(() => {
+    async function loadMe() {
+      if (!isAuthenticated()) {
+        window.location.href = '/login';
+        return;
+      }
+      const res = await apiFetch('/api/me');
+      if (!res.ok) return;
+      setMe(await res.json());
+    }
+    loadMe();
+  }, []);
+
+  if (!me) {
+    return <div className={styles.container}>Yükleniyor...</div>;
+  }
+
+  const isSuperAdmin = me.globalRole === 'superadmin';
+
   return (
     <>
-      <Head>
-        <title>Super Admin Panel | Youpp</title>
-        <meta
-          name='description'
-          content='Youpp Super Admin panel landing page. Sign in to manage sites, users, and platform operations.'
-        />
-        <meta name='robots' content='index,follow' />
-      </Head>
+      <Head><title>Admin | Youpp Panel</title></Head>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1>Super Admin Panel</h1>
-          <p>
-            This is the public landing page for the Youpp Super Admin panel. Search engines can index this page.
-            Sign in to access protected admin actions.
-          </p>
+          <div>
+            <h1>Admin Panel</h1>
+            <p>{me.email}</p>
+          </div>
+          <button className={styles.button} onClick={() => { clearTokens(); window.location.href = '/login'; }}>Çıkış</button>
         </div>
+
         <div className={styles.card}>
           <ul>
-            <li>
-              <Link className={styles.link} href='/login'>
-                Go to Login
-              </Link>
-            </li>
+            <li><Link className={styles.link} href='/admin/sites'>Sitelerim</Link></li>
+            {isSuperAdmin ? <li><Link className={styles.link} href='/admin/users'>Kullanıcılar</Link></li> : null}
+            {isSuperAdmin ? <li><Link className={styles.link} href='/admin/sites'>Site Erişim Yönetimi</Link></li> : null}
           </ul>
         </div>
       </div>

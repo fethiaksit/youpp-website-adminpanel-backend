@@ -1,12 +1,14 @@
 .container { max-width: 1080px; margin: 0 auto; padding: 24px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 12px; }
 .grid { display: grid; grid-template-columns: 220px 1fr; gap: 16px; }
 .sidebar { border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
 .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; background: #fff; }
-.table { width: 100%; border-collapse: collapse; }
-.table th, .table td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
+.table { width: 100%; border-collapse: collapse; background: #fff; }
+.table th, .table td { border-bottom: 1px solid #eee; padding: 10px 8px; text-align: left; }
 .formRow { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .input, .textarea, .select { border: 1px solid #ccc; border-radius: 6px; padding: 8px; width: 100%; }
+.textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .button { background: #0f172a; color: #fff; border: 0; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
 .link { color: #2563eb; text-decoration: none; }
+.error { color: #b91c1c; }
 @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
